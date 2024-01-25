@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,22 +23,15 @@ func main() {
 			log.Fatal(err)
 		}
 		for {
-
-			msgType, data, err := conn.ReadMessage()
-			if err != nil {
-				fmt.Println(err)
-				continue
-			} else if msgType != websocket.TextMessage {
-				fmt.Println("unexpected message type")
-				continue
-			}
 			command := Command{}
-			if json.Unmarshal(data, &command) != nil {
-				return
+			if conn.ReadJSON(&command) != nil {
+				fmt.Println("failed to unmarshal")
+				continue
 			}
 			fmt.Println(command)
 
 			if conn.WriteJSON(command) != nil {
+				fmt.Println("failed to write back")
 				return
 			}
 		}

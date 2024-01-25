@@ -2,11 +2,22 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/redis/go-redis/v9"
 )
+
+type CustomClaims struct {
+	Id       int64  `json:"id"`
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+
+type User struct {
+	Id       int64  `json:"id"`
+	Username string `json:"name"`
+}
 
 func redisClient() *redis.Client {
 	return redis.NewClient(&redis.Options{
@@ -17,19 +28,38 @@ func redisClient() *redis.Client {
 	})
 }
 
-type UserTokenData struct {
-	Id       int64  `json:"id"`
-	Username string `json:"username"`
-}
-
-func getToken(userId int64, redisClient *redis.Client) *UserTokenData {
-	value, err := redisClient.Get(context.TODO(), fmt.Sprintf("jwt:%v", userId)).Bytes()
+func verifyToken(rawJwt string, redisClient *redis.Client) *User {
+	user := validateJwt(rawJwt)
+	if user == nil {
+		return nil
+	}
+	value, err := redisClient.Get(context.TODO(), fmt.Sprintf("jwt:%v", user.Id)).Bytes()
 	if err != nil {
 		return nil
 	}
-	data := UserTokenData{}
-	if json.Unmarshal(value, &data) != nil {
+	// Verify the provided token matches what was stored by the auth api
+	redisJwt := string(value)
+	if rawJwt != redisJwt {
 		return nil
 	}
-	return &data
+	return user
+}
+
+func validateJwt(tokenString string) *User {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if token.Method.Alg() != jwt.SigningMethodHS256.Name {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return ([]byte(SECRET_JWT)), nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	mapped := token.Claims.(jwt.MapClaims)
+	if mapped["id"] != nil && mapped["username"] != nil {
+		return &User{int64(mapped["id"].(float64)), mapped["username"].(string)}
+	}
+
+	return nil
 }

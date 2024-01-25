@@ -31,15 +31,18 @@ func redisClient() *redis.Client {
 func verifyToken(rawJwt string, redisClient *redis.Client) *User {
 	user := validateJwt(rawJwt)
 	if user == nil {
+		fmt.Println("validate jwt failed")
 		return nil
 	}
 	value, err := redisClient.Get(context.TODO(), fmt.Sprintf("jwt:%v", user.Id)).Bytes()
 	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
 	// Verify the provided token matches what was stored by the auth api
 	redisJwt := string(value)
 	if rawJwt != redisJwt {
+		fmt.Printf("tokens dont match! %s != %s  \n", rawJwt, redisJwt)
 		return nil
 	}
 	return user
@@ -53,6 +56,7 @@ func validateJwt(tokenString string) *User {
 		return ([]byte(SECRET_JWT)), nil
 	})
 	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
 

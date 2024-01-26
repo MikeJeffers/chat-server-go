@@ -72,7 +72,7 @@ func (s *Server) broadcast(command string, data map[string]interface{}) {
 		payload[k] = v
 	}
 	payload["command"] = command
-	for client, _ := range s.clients {
+	for client := range s.clients {
 		fmt.Println("sending data to client", payload)
 		err := client.WriteJSON(payload)
 		if err != nil {

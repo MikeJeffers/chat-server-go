@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/redis/go-redis/v9"
@@ -66,9 +65,5 @@ func validateJwt(tokenString string) *User {
 	if mapped["id"] == nil || mapped["username"] == nil {
 		return nil
 	}
-	id, err := strconv.Atoi(mapped["id"].(string))
-	if err != nil {
-		return nil
-	}
-	return &User{int64(id), mapped["username"].(string)}
+	return &User{int64(mapped["id"].(float64)), mapped["username"].(string)}
 }

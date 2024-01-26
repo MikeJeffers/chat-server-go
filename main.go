@@ -16,6 +16,8 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
+const MAX_MESSAGES int = 50
+
 type Command map[string]interface{}
 
 func auth(conn *websocket.Conn, redis *redis.Client) *User {
@@ -99,7 +101,7 @@ func (s *Server) removeUser(user *User) {
 func (s *Server) addMessage(content string, user *User) {
 	message := Message{content, user.Username, time.Now().UTC().String()}
 	s.messages = append(s.messages, message)
-	if len(s.messages) > 10 {
+	if len(s.messages) > MAX_MESSAGES {
 		s.messages = s.messages[1:]
 	}
 	s.broadcast("MESSAGE_ADD", map[string]interface{}{"message": message})

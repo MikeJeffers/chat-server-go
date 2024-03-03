@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:latest
+    environment:
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,CONFIG
+      - REDIS_PASSWORD="${REDIS_PASSWORD}"
+    restart: on-failure
+    ports:
+      - "${REDIS_PORT}:6379"
+    command:
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "${REDIS_PASSWORD}"
+    volumes:
+      - /data/redis

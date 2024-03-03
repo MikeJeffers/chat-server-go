@@ -1,4 +1,4 @@
-package main
+package chat
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type User struct {
 	Username string `json:"name"`
 }
 
-func redisClient() *redis.Client {
+func RedisClient() *redis.Client {
 	return redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%v:%v", REDIS_HOST, REDIS_PORT),
 		Password: REDIS_PASSWORD,
@@ -28,8 +28,8 @@ func redisClient() *redis.Client {
 	})
 }
 
-func verifyToken(rawJwt string, redisClient *redis.Client) *User {
-	user := validateJwt(rawJwt)
+func VerifyToken(rawJwt string, redisClient *redis.Client) *User {
+	user := ValidateJwt(rawJwt)
 	if user == nil {
 		fmt.Println("validate jwt failed")
 		return nil
@@ -48,7 +48,7 @@ func verifyToken(rawJwt string, redisClient *redis.Client) *User {
 	return user
 }
 
-func validateJwt(tokenString string) *User {
+func ValidateJwt(tokenString string) *User {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if token.Method.Alg() != jwt.SigningMethodHS256.Name {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

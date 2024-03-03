@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	libs "github.com/mikejeffers/chat-server-go/libs"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -20,7 +21,7 @@ const MAX_MESSAGES int = 50
 
 type Command map[string]interface{}
 
-func auth(conn *websocket.Conn, redis *redis.Client) *User {
+func auth(conn *websocket.Conn, redis *redis.Client) *libs.User {
 	command := Command{}
 	if conn.ReadJSON(&command) != nil {
 		fmt.Println("failed to read command json")
@@ -33,7 +34,7 @@ func auth(conn *websocket.Conn, redis *redis.Client) *User {
 	}
 	token := command["token"].(string)
 	fmt.Println(token)
-	user := verifyToken(token, redis)
+	user := libs.VerifyToken(token, redis)
 	fmt.Println(user)
 	if user == nil {
 		conn.Close()
@@ -65,7 +66,7 @@ type Message struct {
 type Server struct {
 	clients  map[*websocket.Conn]bool
 	messages []Message
-	users    map[int64]*User
+	users    map[int64]*libs.User
 }
 
 func (s *Server) broadcast(command string, data map[string]interface{}) {
@@ -83,7 +84,7 @@ func (s *Server) broadcast(command string, data map[string]interface{}) {
 	}
 }
 
-func (s *Server) addUser(user *User) {
+func (s *Server) addUser(user *libs.User) {
 	if s.users[user.Id] != nil {
 		return
 	}
@@ -91,14 +92,14 @@ func (s *Server) addUser(user *User) {
 	s.broadcast("USER_JOIN", map[string]interface{}{"user": user})
 }
 
-func (s *Server) removeUser(user *User) {
+func (s *Server) removeUser(user *libs.User) {
 	if s.users[user.Id] != nil {
 		delete(s.users, user.Id)
 	}
 	s.broadcast("USER_LEAVE", map[string]interface{}{"user": user})
 }
 
-func (s *Server) addMessage(content string, user *User) {
+func (s *Server) addMessage(content string, user *libs.User) {
 	message := Message{content, user.Username, time.Now().UTC().String()}
 	s.messages = append(s.messages, message)
 	if len(s.messages) > MAX_MESSAGES {
@@ -108,7 +109,7 @@ func (s *Server) addMessage(content string, user *User) {
 }
 
 func (s *Server) writeServerStateToClient(conn *websocket.Conn) {
-	userArray := make([]*User, 0)
+	userArray := make([]*libs.User, 0)
 	for _, v := range s.users {
 		userArray = append(userArray, v)
 	}
@@ -116,8 +117,8 @@ func (s *Server) writeServerStateToClient(conn *websocket.Conn) {
 }
 
 func main() {
-	server := Server{make(map[*websocket.Conn]bool, 0), make([]Message, 0), make(map[int64]*User)}
-	redis := redisClient()
+	server := Server{make(map[*websocket.Conn]bool, 0), make([]Message, 0), make(map[int64]*libs.User)}
+	redis := libs.RedisClient()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {

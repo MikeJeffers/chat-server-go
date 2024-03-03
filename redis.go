@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 )
 
 type CustomClaims struct {
 	Id       int64  `json:"id"`
 	Username string `json:"username"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type User struct {
@@ -51,7 +51,7 @@ func verifyToken(rawJwt string, redisClient *redis.Client) *User {
 func validateJwt(tokenString string) *User {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if token.Method.Alg() != jwt.SigningMethodHS256.Name {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return ([]byte(SECRET_JWT)), nil
 	})
